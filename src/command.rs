@@ -1,6 +1,6 @@
 use serenity::model::channel::Message;
 use serenity::prelude::*;
-use std::process::Command;
+use tokio::process::Command;
 use tracing::error;
 
 pub async fn cmd_help(ctx: Context, msg: Message) {
@@ -27,6 +27,7 @@ pub async fn cmd_say_hello(ctx: Context, msg: Message) {
         .arg(r#"C:/Users/akh/Documents/ark-rcon.ps1"#)
         .arg(r#""BroadCast Hello. This is a test msg from Discord BOT""#)
         .output()
+        .await
         .expect("failed to start `rcon`");
     let m = if output.stdout.is_empty() {
         "Succeeded".to_string()
@@ -45,6 +46,7 @@ pub async fn cmd_save(ctx: Context, msg: Message) {
         .arg(r#"C:/Users/akh/Documents/ark-rcon.ps1"#)
         .arg(r#""SaveWorld""#)
         .output()
+        .await
         .expect("failed to start `rcon`");
     let m = if output.stdout.is_empty() {
         "Succeeded".to_string()
@@ -60,6 +62,7 @@ pub async fn cmd_check_connection(ctx: Context, msg: Message) {
     let raw_output = Command::new("powershell")
         .arg(r#"scripts/check_connection.ps1"#)
         .output()
+        .await
         .expect("failed to start `check_connection`");
     let output = String::from_utf8_lossy(&raw_output.stdout);
     let m = if output == "0" { "No" } else { "Yes" };
@@ -72,6 +75,7 @@ pub async fn cmd_reload_connection(ctx: Context, msg: Message) {
     Command::new("powershell")
         .arg(r#"C:/Users/akh/Documents/ark-playit-restart.ps1"#)
         .output()
+        .await
         .expect("failed to start `reload_connection`");
     if let Err(e) = msg.channel_id.say(&ctx.http, "Reloaded").await {
         error!("Error sending message: {:?}", e);

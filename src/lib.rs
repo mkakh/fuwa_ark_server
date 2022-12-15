@@ -4,7 +4,6 @@ use serenity::model::channel::Message;
 use serenity::model::gateway::Ready;
 use serenity::prelude::*;
 use shuttle_secrets::SecretStore;
-use std::process::Command;
 use tracing::{error, info};
 mod command;
 pub use crate::command::*;
@@ -38,18 +37,6 @@ impl EventHandler for Bot {
         } else if msg.content == "/start_server" {
             // steamcmd
             if let Err(e) = msg.channel_id.say(&ctx.http, "未実装").await {
-                error!("Error sending message: {:?}", e);
-            }
-        } else if msg.content == "/_ls" {
-            let output = Command::new("ls")
-                .args(&["-a"])
-                .output()
-                .expect("failed to start `ls`");
-            if let Err(e) = msg
-                .channel_id
-                .say(&ctx.http, String::from_utf8_lossy(&output.stdout))
-                .await
-            {
                 error!("Error sending message: {:?}", e);
             }
         }
