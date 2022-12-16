@@ -20,12 +20,42 @@ pub async fn cmd_help(ctx: Context, msg: Message) {
     }
 }
 
+pub async fn cmd_listplayers(ctx: Context, msg: Message) {
+    let output = Command::new("powershell")
+        .arg("-NonInteractive")
+        .arg("-File")
+        .arg(r#"C:/Users/akh/Documents/ark-rcon.ps1"#)
+        .arg("listplayers")
+        .output()
+        .await
+        .expect("failed to start `rcon`");
+    if output.stdout.is_empty() {
+        if let Err(e) = msg
+            .channel_id
+            .say(&ctx.http, "Failed to get the player list")
+            .await
+        {
+            error!("Error sending message: {:?}", e);
+        }
+    } else {
+        let mut v = vec![];
+        let list = String::from_utf8_lossy(&output.stdout).to_string();
+        for li in list.lines() {
+            let splitted = li.split(',').collect::<Vec<&str>>();
+            v.push(splitted[0]);
+        }
+        if let Err(e) = msg.channel_id.say(&ctx.http, v.join("\n")).await {
+            error!("Error sending message: {:?}", e);
+        }
+    }
+}
+
 pub async fn cmd_say_hello(ctx: Context, msg: Message) {
     let output = Command::new("powershell")
         .arg("-NonInteractive")
         .arg("-File")
         .arg(r#"C:/Users/akh/Documents/ark-rcon.ps1"#)
-        .arg(r#""BroadCast Hello. This is a test msg from Discord BOT""#)
+        .arg(r#""BroadCast てすとてすと""#)
         .output()
         .await
         .expect("failed to start `rcon`");

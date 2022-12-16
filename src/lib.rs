@@ -20,6 +20,8 @@ impl EventHandler for Bot {
             cmd_say_hello(ctx, msg).await;
         } else if msg.content == "/check_connection" {
             cmd_check_connection(ctx, msg).await;
+        } else if msg.content == "/listplayers" {
+            cmd_listplayers(ctx, msg).await;
         } else if msg.content == "/reload_connection" {
             cmd_reload_connection(ctx, msg).await;
         } else if msg.content == "/restart_server" {
