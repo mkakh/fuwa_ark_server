@@ -1,3 +1,5 @@
 /target
 /Cargo.lock
 /Secrets.toml
+/discord_token
+/rcon_password
