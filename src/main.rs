@@ -43,7 +43,16 @@ impl EventHandler for Handler {
 }
 
 #[group]
-#[commands(broadcast, listplayers, save, check_connection, reload_connection)]
+#[commands(
+    broadcast,
+    listplayers,
+    save,
+    check_connection,
+    reload_connection,
+    check_server,
+    start_server,
+    restart_server
+)]
 struct General;
 
 #[help]
