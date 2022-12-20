@@ -248,7 +248,7 @@ async fn say(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
 
 #[command]
 #[description = "ポート公開用ソフト (playit.gg) が動作しているかを確認します"]
-async fn check_connection(ctx: &Context, msg: &Message, _args: Args) -> CommandResult {
+async fn check_connection(ctx: &Context, msg: &Message) -> CommandResult {
     let raw_output = Command::new("powershell")
         .arg(r#"scripts/check_connection.ps1"#)
         .output()
@@ -288,13 +288,14 @@ async fn reload_connection(ctx: &Context, msg: &Message, args: Args) -> CommandR
 
 #[command]
 #[description = "ゲームをセーブします"]
-async fn save(ctx: &Context, msg: &Message, _args: Args) -> CommandResult {
+async fn save(ctx: &Context, msg: &Message) -> CommandResult {
     let output = rcon("SaveWorld").await.expect("failed to run `rcon`");
 
     if output.is_empty() {
         msg.reply(&ctx.http, "No output was returned").await?;
     } else {
         msg.reply(&ctx.http, output).await?;
+        // TODO セーブデータのバックアップを追加
     };
     Ok(())
 }
@@ -341,7 +342,7 @@ async fn broadcast(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
 #[command]
 #[description = "サーバーを起動します"]
 #[allowed_roles("ARK Server Admin")]
-async fn start_server(ctx: &Context, msg: &Message, _args: Args) -> CommandResult {
+async fn start_server(ctx: &Context, msg: &Message) -> CommandResult {
     let output = rcon("listplayers").await.expect("failed to run `rcon`");
     if output.is_empty() {
         let raw_output = Command::new("powershell")
@@ -472,6 +473,28 @@ async fn check_server(ctx: &Context, msg: &Message) -> CommandResult {
         msg.reply(&ctx.http, "ARKサーバーは動作停止中です").await?;
     } else {
         msg.reply(&ctx.http, "ARKサーバーは動作中です").await?;
+    }
+    Ok(())
+}
+
+#[command]
+#[description = "ロールバック可能なバックアップリストを表示します"]
+#[allowed_roles("ARK Server Admin")]
+async fn listbackups(ctx: &Context, msg: &Message) -> CommandResult {
+    // TODO 未実装
+    msg.reply(&ctx.http, "未実装です").await?;
+    Ok(())
+}
+
+#[command]
+#[description = "指定されたセーブデータを使ってロールバックします"]
+#[allowed_roles("ARK Server Admin")]
+async fn rollback(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
+    // TODO 未実装
+    if !args.is_empty() {
+        msg.reply(&ctx.http, "未実装です").await?;
+    } else {
+        msg.reply(&ctx.http, "セーブデータ名を指定してください．利用可能なセーブデータは*/listbackups*で確認できます．").await?;
     }
     Ok(())
 }
