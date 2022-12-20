@@ -47,6 +47,7 @@ impl EventHandler for Handler {
     broadcast,
     listplayers,
     save,
+    listbackups,
     check_connection,
     reload_connection,
     check_server,
@@ -481,8 +482,16 @@ async fn check_server(ctx: &Context, msg: &Message) -> CommandResult {
 #[description = "ロールバック可能なバックアップリストを表示します"]
 #[allowed_roles("ARK Server Admin")]
 async fn listbackups(ctx: &Context, msg: &Message) -> CommandResult {
-    // TODO 未実装
-    msg.reply(&ctx.http, "未実装です").await?;
+    let mut list: String = String::from("読み方：20221217_163429 2022/12/17 16:34のバックアップ\n");
+    let paths =
+        std::fs::read_dir("C:/asmdata/Servers/_backup_/644526ea-f60f-4779-9c62-943c505a1724")?;
+    for path in paths {
+        list.push_str(&format!("{}\n", path?.file_name().to_str().unwrap()));
+        //msg.channel_id
+        //   .say(&ctx.http, &path?.file_name().to_str().unwrap())
+        //  .await?;
+    }
+    msg.reply(&ctx.http, list).await?;
     Ok(())
 }
 
