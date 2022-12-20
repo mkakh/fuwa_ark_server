@@ -284,15 +284,20 @@ async fn check_connection(ctx: &Context, msg: &Message) -> CommandResult {
 }
 
 async fn num_listplayers() -> usize {
-    let output = rcon("listplayers").await.expect("failed to run `rcon`");
-    output.chars().filter(|x| *x == ',').count()
+    if let Ok(output) = rcon("listplayers").await {
+        output.chars().filter(|x| *x == ',').count()
+    } else {
+        1001001001
+    }
 }
 
 #[command]
 #[allowed_roles("ARK Server Admin")]
 #[description = "ポート公開用ソフト (playit.gg) を再起動します"]
 async fn reload_connection(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
-    if num_listplayers().await == 0 || (!args.is_empty() && args.rest() == "force") {
+    if (num_listplayers().await == 0 || num_listplayers().await == 1001001001)
+        || (!args.is_empty() && args.rest() == "force")
+    {
         let result = Command::new("powershell")
             .arg(r#"C:/Users/akh/Documents/ark-playit-restart.ps1"#)
             .output()
@@ -303,8 +308,9 @@ async fn reload_connection(ctx: &Context, msg: &Message, args: Args) -> CommandR
                 "reload_connectionの実行に失敗しました\n再実行してください",
             )
             .await?;
+        } else {
+            msg.reply(&ctx.http, "Connection Reloaded").await?;
         }
-        msg.reply(&ctx.http, "Connection Reloaded").await?;
     } else {
         msg.reply(&ctx.http, "ゲームにプレイヤーが残っていたため，再起動を中止しました．\n強制再起動をする場合は*/reload_connection force*を実行してください．").await?;
     }
