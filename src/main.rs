@@ -17,6 +17,7 @@ use serenity::prelude::*;
 use serenity::utils::{content_safe, ContentSafeOptions};
 use tokio::process::Command;
 use tokio::sync::Mutex;
+use tokio::time::{sleep, Duration};
 
 // A container type is created for inserting into the Client's `data`, which
 // allows for data to be accessible across all events and framework commands, or
@@ -324,6 +325,52 @@ async fn broadcast(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
             .expect("failed to run `rcon`");
     } else {
         msg.reply(&ctx.http, "An argument is required").await?;
+    }
+    Ok(())
+}
+
+#[command]
+#[description = "サーバーをセーブしてシャットダウンします"]
+#[allowed_roles("ARK Server Admin")]
+async fn shutdown(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
+    if num_listplayers().await == 0 || (!args.is_empty() && args.rest() == "force") {
+        msg.reply(&ctx.http, "ゲームをセーブします").await?;
+        let mut save_succeeded_flag = false;
+        for i in 0..3 {
+            let output = rcon("SaveWorld").await.expect("failed to run `rcon`");
+
+            if output.is_empty() {
+                if i != 2 {
+                    msg.reply(&ctx.http, "セーブに失敗しました．再試行します．")
+                        .await?;
+                    sleep(Duration::from_millis(1000)).await;
+                } else {
+                    msg.reply(&ctx.http, "セーブに失敗しました．").await?;
+                }
+            } else {
+                msg.reply(&ctx.http, output).await?;
+                save_succeeded_flag = true;
+                break;
+            };
+        }
+        if save_succeeded_flag {
+            msg.reply(&ctx.http, "シャットダウンを開始します").await?;
+            let output = rcon("DoExit").await.expect("failed to run `rcon`");
+
+            if output.is_empty() {
+                msg.reply(&ctx.http, "No output was returned").await?;
+            } else {
+                msg.reply(&ctx.http, output).await?;
+            };
+        } else {
+            msg.reply(
+                &ctx.http,
+                "サーバーがコマンドを受け付けていません．シャットダウンを中断します．",
+            )
+            .await?;
+        }
+    } else {
+        msg.reply(&ctx.http, "ゲームにプレイヤーが残っていたため，シャットダウンを中止しました．\n強制シャットダウンをする場合は*/shutdown force*を実行してください．").await?;
     }
     Ok(())
 }
