@@ -260,6 +260,7 @@ async fn num_listplayers() -> usize {
 }
 
 #[command]
+#[allowed_roles("ARK Server Admin")]
 #[description = "ポート公開用ソフト (playit.gg) を再起動します"]
 async fn reload_connection(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     if num_listplayers().await == 0 || (!args.is_empty() && args.rest() == "force") {
