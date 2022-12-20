@@ -56,7 +56,7 @@ impl EventHandler for Handler {
     reload_connection,
     check_server,
     start_server,
-    restart_server
+    shutdown_server
 )]
 struct General;
 
@@ -446,7 +446,7 @@ async fn restart_server(ctx: &Context, msg: &Message, args: Args) -> CommandResu
 #[command]
 #[description = "サーバーをセーブしてシャットダウンします"]
 #[allowed_roles("ARK Server Admin")]
-async fn shutdown(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
+async fn shutdown_server(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     if num_listplayers().await == 0 || (!args.is_empty() && args.rest() == "force") {
         msg.reply(&ctx.http, "ゲームをセーブします").await?;
         let mut save_succeeded_flag = false;
@@ -495,8 +495,8 @@ async fn shutdown(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
 #[command]
 #[description = "ARKサーバーが起動しているかを確認します"]
 async fn check_server(ctx: &Context, msg: &Message) -> CommandResult {
-    let output = rcon("listplayers").await.expect("failed to run `rcon`");
-    if output.is_empty() {
+    let output = rcon("listplayers").await;
+    if output.is_err() || output.unwrap().is_empty() {
         msg.reply(&ctx.http, "ARKサーバーは動作停止中です").await?;
     } else {
         msg.reply(&ctx.http, "ARKサーバーは動作中です").await?;
