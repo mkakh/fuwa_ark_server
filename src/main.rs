@@ -313,8 +313,10 @@ async fn save(ctx: &Context, msg: &Message) -> CommandResult {
     if output.is_empty() {
         msg.reply(&ctx.http, "No output was returned").await?;
     } else {
-        msg.reply(&ctx.http, output).await?;
+        msg.reply(&ctx.http, "セーブとバックアップを開始しました")
+            .await?;
         create_backup().await?;
+        msg.reply(&ctx.http, output).await?;
     };
     Ok(())
 }
@@ -400,6 +402,9 @@ async fn restart_server(ctx: &Context, msg: &Message, args: Args) -> CommandResu
                     msg.reply(&ctx.http, "セーブに失敗しました．").await?;
                 }
             } else {
+                msg.reply(&ctx.http, "セーブとバックアップを開始しました")
+                    .await?;
+                create_backup().await?;
                 msg.reply(&ctx.http, output).await?;
                 save_succeeded_flag = true;
                 break;
@@ -457,6 +462,9 @@ async fn shutdown(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
                     msg.reply(&ctx.http, "セーブに失敗しました．").await?;
                 }
             } else {
+                msg.reply(&ctx.http, "セーブとバックアップを開始しました")
+                    .await?;
+                create_backup().await?;
                 msg.reply(&ctx.http, output).await?;
                 save_succeeded_flag = true;
                 break;
