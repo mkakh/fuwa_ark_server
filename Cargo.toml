@@ -4,8 +4,11 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+chrono = "0.4.23"
 rcon = {version="0.6.0", features = ["rt-async-std"]}
 serenity = "0.11.5"
 tokio = { version="1.23.0", features = ["full"] }
+walkdir = "2.3.2"
+zip = "0.6.3"
 
 

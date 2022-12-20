@@ -1,4 +1,5 @@
 use std::collections::{HashMap, HashSet};
+use std::io::{Read, Write};
 use std::sync::Arc;
 
 use serenity::async_trait;
@@ -15,9 +16,12 @@ use serenity::model::gateway::{GatewayIntents, Ready};
 use serenity::model::id::UserId;
 use serenity::prelude::*;
 use serenity::utils::{content_safe, ContentSafeOptions};
+use std::fs::File;
 use tokio::process::Command;
 use tokio::sync::Mutex;
 use tokio::time::{sleep, Duration};
+use walkdir::WalkDir;
+use zip::write::FileOptions;
 
 // A container type is created for inserting into the Client's `data`, which
 // allows for data to be accessible across all events and framework commands, or
@@ -151,6 +155,20 @@ async fn dispatch_error(ctx: &Context, msg: &Message, error: DispatchError, _com
 #[tokio::main]
 async fn main() {
     let token = std::fs::read_to_string("discord_token").expect("could not read DISCORD_TOKEN");
+
+    std::thread::spawn(|| loop {
+        let rt = tokio::runtime::Runtime::new().unwrap();
+        std::thread::sleep(std::time::Duration::from_millis(3600000));
+        rt.block_on(async {
+            let output = rcon("SaveWorld").await.expect("failed to run `rcon`");
+
+            if output.is_empty() {
+                println!("backup failed");
+            } else {
+                create_backup().await.expect("failed to create a backup");
+            }
+        });
+    });
 
     let http = Http::new(&token);
 
@@ -296,7 +314,7 @@ async fn save(ctx: &Context, msg: &Message) -> CommandResult {
         msg.reply(&ctx.http, "No output was returned").await?;
     } else {
         msg.reply(&ctx.http, output).await?;
-        // TODO セーブデータのバックアップを追加
+        create_backup().await?;
     };
     Ok(())
 }
@@ -482,13 +500,16 @@ async fn check_server(ctx: &Context, msg: &Message) -> CommandResult {
 #[description = "ロールバック可能なバックアップリストを表示します"]
 #[allowed_roles("ARK Server Admin")]
 async fn listbackups(ctx: &Context, msg: &Message) -> CommandResult {
-    let mut list: String = String::from("読み方：20221217_163429 2022/12/17 16:34のバックアップ\n");
-    let paths =
-        std::fs::read_dir("C:/asmdata/Servers/_backup_/644526ea-f60f-4779-9c62-943c505a1724")?;
+    let mut list: String =
+        String::from("読み方：2022-12-21_(16-11-21).zip 2022/12/21 16:11のバックアップ\n");
+    let paths = std::fs::read_dir("C:/asmdata/akhBackups")?;
     for path in paths {
         list.push_str(&format!(
             "{}\n",
-            path?.file_name().to_str().expect("failed to get file names")
+            path?
+                .file_name()
+                .to_str()
+                .expect("failed to get file names")
         ));
         //msg.channel_id
         //   .say(&ctx.http, &path?.file_name().to_str().expect("failed to get file names"))
@@ -508,6 +529,85 @@ async fn rollback(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     } else {
         msg.reply(&ctx.http, "セーブデータ名を指定してください．利用可能なセーブデータは*/listbackups*で確認できます．").await?;
     }
+    Ok(())
+}
+
+async fn create_backup() -> zip::result::ZipResult<()> {
+    println!("backup started");
+    let date = chrono::Local::now()
+        .format("%Y-%m-%d_(%H-%M-%S)")
+        .to_string();
+    let dest = format!("C:/asmdata/akhBackups/{}.zip", date);
+    let path = std::path::Path::new(&dest);
+    let mut zip = zip::ZipWriter::new(std::fs::File::create(path)?);
+    let options = FileOptions::default().compression_method(zip::CompressionMethod::Bzip2);
+
+    let target_path = "C:/asmdata/Servers/Server2/ShooterGame/Saved/SavedArks";
+
+    let walkdir = WalkDir::new(target_path);
+    let it = walkdir.into_iter().filter_map(|e| e.ok());
+
+    let mut buffer = Vec::new();
+    for entry in it {
+        let path = entry.path();
+        let name = path.strip_prefix(target_path).unwrap().to_str().unwrap();
+        if path.is_file()
+            && (!(path
+                .extension()
+                .unwrap()
+                .to_str()
+                .expect("failed to get a file extension")
+                .to_string()
+                .contains("bak")
+                || name != "Fjordur.ark"
+                    && name.contains("Fjordur")
+                    && path.extension().unwrap() == "ark"))
+        {
+            println!("Add: {}", name);
+            zip.start_file(name, options)?;
+            let mut f = File::open(path)?;
+
+            f.read_to_end(&mut buffer)?;
+            zip.write_all(&buffer)?;
+            buffer.clear();
+        } else if path.is_dir() {
+            zip.add_directory(name, options)?;
+        }
+    }
+    zip.finish()?;
+
+    // if the num of file is greater than 10, delete the oldest backup
+    if 10
+        < std::fs::read_dir("C:/asmdata/akhBackups")
+            .expect("failed to read the backup directory")
+            .count()
+    {
+        let paths = std::fs::read_dir("C:/asmdata/akhBackups")
+            .expect("failed to read the backup directory");
+        let mut old_path;
+        let mut old_time = std::time::SystemTime::now();
+
+        for result_path in paths {
+            let entry = result_path.expect("failed to read a file (backup)");
+            let metadata = std::fs::metadata("C:/asmdata/akhBackups")?;
+            let created_time = metadata.created()?;
+
+            if created_time < old_time {
+                old_time = created_time;
+                old_path = entry.path();
+                std::fs::remove_file(&old_path)?;
+                println!(
+                    "Deleted {}",
+                    old_path
+                        .file_name()
+                        .unwrap()
+                        .to_str()
+                        .expect("failed to get a file name")
+                );
+            }
+        }
+    }
+    println!("backup finished");
     Ok(())
 }
 
