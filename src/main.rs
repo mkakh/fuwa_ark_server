@@ -509,11 +509,12 @@ async fn check_server(ctx: &Context, msg: &Message) -> CommandResult {
 #[allowed_roles("ARK Server Admin")]
 async fn listbackups(ctx: &Context, msg: &Message) -> CommandResult {
     let mut list: String =
-        String::from("読み方：2022-12-21_(16-11-21).zip 2022/12/21 16:11のバックアップ\n");
+        String::from("表記説明：\n`2022-12-21_(16-11-21).zip` 2022/12/21 16:11のバックアップ\n\n");
     let paths = std::fs::read_dir("C:/asmdata/akhBackups")?;
-    for path in paths {
+    for (i, path) in paths.into_iter().enumerate() {
         list.push_str(&format!(
-            "{}\n",
+            "{}: `{}`\n",
+            i,
             path?
                 .file_name()
                 .to_str()
