@@ -330,6 +330,86 @@ async fn broadcast(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
 }
 
 #[command]
+#[description = "サーバーを起動します"]
+#[allowed_roles("ARK Server Admin")]
+async fn start_server(ctx: &Context, msg: &Message, _args: Args) -> CommandResult {
+    let output = rcon("listplayers").await.expect("failed to run `rcon`");
+    if output.is_empty() {
+        let raw_output = Command::new("powershell")
+            .arg(r#"scripts/start_ark_server.ps1"#)
+            .output()
+            .await
+            .expect("failed to start `check_connection`");
+        let output = String::from_utf8_lossy(&raw_output.stdout);
+        if output.is_empty() {
+            msg.reply(&ctx.http, "No output was returned").await?;
+        } else {
+            msg.reply(&ctx.http, output).await?;
+        }
+    } else {
+        msg.reply(&ctx.http, "ARKサーバーは既に動作中です").await?;
+    }
+    Ok(())
+}
+
+#[command]
+#[description = "サーバーを再起動します"]
+#[allowed_roles("ARK Server Admin")]
+async fn restart_server(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
+    if num_listplayers().await == 0 || (!args.is_empty() && args.rest() == "force") {
+        msg.reply(&ctx.http, "ゲームをセーブします").await?;
+        let mut save_succeeded_flag = false;
+        for i in 0..3 {
+            let output = rcon("SaveWorld").await.expect("failed to run `rcon`");
+
+            if output.is_empty() {
+                if i != 2 {
+                    msg.reply(&ctx.http, "セーブに失敗しました．再試行します．")
+                        .await?;
+                    sleep(Duration::from_millis(1000)).await;
+                } else {
+                    msg.reply(&ctx.http, "セーブに失敗しました．").await?;
+                }
+            } else {
+                msg.reply(&ctx.http, output).await?;
+                save_succeeded_flag = true;
+                break;
+            };
+        }
+        if save_succeeded_flag {
+            msg.reply(&ctx.http, "シャットダウンを開始します").await?;
+            let output = rcon("DoExit").await.expect("failed to run `rcon`");
+
+            if output.is_empty() {
+                msg.reply(&ctx.http, "シャットダウンが確認できませんでした．*/listplayers*などのコマンドを使用してサーバーが正常終了しているかを確認してください．サーバーの起動は*/start_server*で行えます．").await?;
+            } else {
+                msg.reply(&ctx.http, output).await?;
+                let raw_output = Command::new("powershell")
+                    .arg(r#"scripts/start_ark_server.ps1"#)
+                    .output()
+                    .await
+                    .expect("failed to start `check_connection`");
+                let output = String::from_utf8_lossy(&raw_output.stdout);
+                if output.is_empty() {
+                    msg.reply(&ctx.http, "No output was returned").await?;
+                } else {
+                    msg.reply(&ctx.http, output).await?;
+                }
+            };
+        } else {
+            msg.reply(
+                &ctx.http,
+                "サーバーがコマンドを受け付けていません．シャットダウンを中断します．",
+            )
+            .await?;
+        }
+    } else {
+        msg.reply(&ctx.http, "ゲームにプレイヤーが残っていたため，シャットダウンを中止しました．\n強制シャットダウンをする場合は*/shutdown force*を実行してください．").await?;
+    }
+    Ok(())
+}
+
+#[command]
 #[description = "サーバーをセーブしてシャットダウンします"]
 #[allowed_roles("ARK Server Admin")]
 async fn shutdown(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
@@ -371,6 +451,18 @@ async fn shutdown(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
         }
     } else {
         msg.reply(&ctx.http, "ゲームにプレイヤーが残っていたため，シャットダウンを中止しました．\n強制シャットダウンをする場合は*/shutdown force*を実行してください．").await?;
+    }
+    Ok(())
+}
+
+#[command]
+#[description = "ARKサーバーが起動しているかを確認します"]
+async fn check_server(ctx: &Context, msg: &Message) -> CommandResult {
+    let output = rcon("listplayers").await.expect("failed to run `rcon`");
+    if output.is_empty() {
+        msg.reply(&ctx.http, "ARKサーバーは動作停止中です").await?;
+    } else {
+        msg.reply(&ctx.http, "ARKサーバーは動作中です").await?;
     }
     Ok(())
 }
