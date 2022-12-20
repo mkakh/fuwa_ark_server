@@ -392,7 +392,7 @@ async fn restart_server(ctx: &Context, msg: &Message, args: Args) -> CommandResu
             let output = rcon("DoExit").await.expect("failed to run `rcon`");
 
             if output.is_empty() {
-                msg.reply(&ctx.http, "シャットダウンが確認できませんでした．*/listplayers*などのコマンドを使用してサーバーが正常終了しているかを確認してください．サーバーの起動は*/start_server*で行えます．").await?;
+                msg.reply(&ctx.http, "シャットダウンが確認できませんでした．*/check_server*などのコマンドを使用してサーバーが正常終了しているかを確認してください．サーバーの起動は*/start_server*で行えます．").await?;
             } else {
                 msg.reply(&ctx.http, output).await?;
                 let raw_output = Command::new("powershell")
@@ -486,9 +486,12 @@ async fn listbackups(ctx: &Context, msg: &Message) -> CommandResult {
     let paths =
         std::fs::read_dir("C:/asmdata/Servers/_backup_/644526ea-f60f-4779-9c62-943c505a1724")?;
     for path in paths {
-        list.push_str(&format!("{}\n", path?.file_name().to_str().unwrap()));
+        list.push_str(&format!(
+            "{}\n",
+            path?.file_name().to_str().expect("failed to get file names")
+        ));
         //msg.channel_id
-        //   .say(&ctx.http, &path?.file_name().to_str().unwrap())
+        //   .say(&ctx.http, &path?.file_name().to_str().expect("failed to get file names"))
         //  .await?;
     }
     msg.reply(&ctx.http, list).await?;
