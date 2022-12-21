@@ -598,14 +598,15 @@ async fn create_backup() -> zip::result::ZipResult<()> {
     zip.finish()?;
 
     // if the num of file is greater than 10, delete the oldest backup
+    let backup_dir_path = "C:/asmdata/akhBackups";
     if 10
-        < std::fs::read_dir("C:/asmdata/akhBackups")
+        < std::fs::read_dir(backup_dir_path)
             .expect("failed to read the backup directory")
             .count()
     {
-        let paths = std::fs::read_dir("C:/asmdata/akhBackups")
-            .expect("failed to read the backup directory");
-        let mut old_path;
+        let paths =
+            std::fs::read_dir(backup_dir_path).expect("failed to read the backup directory");
+        let mut old_path = std::path::PathBuf::from("C:/asmdata/akhBackups");
         let mut old_time = std::time::SystemTime::now();
 
         for result_path in paths {
@@ -616,16 +617,18 @@ async fn create_backup() -> zip::result::ZipResult<()> {
             if created_time < old_time {
                 old_time = created_time;
                 old_path = entry.path();
-                std::fs::remove_file(&old_path)?;
-                println!(
-                    "Deleted {}",
-                    old_path
-                        .file_name()
-                        .unwrap()
-                        .to_str()
-                        .expect("failed to get a file name")
-                );
             }
+        }
+        if old_path != std::path::PathBuf::from(backup_dir_path) {
+            std::fs::remove_file(&old_path)?;
+            println!(
+                "Deleted {}",
+                old_path
+                    .file_name()
+                    .unwrap()
+                    .to_str()
+                    .expect("failed to get a file name")
+            );
         }
     }
     println!("backup finished");
