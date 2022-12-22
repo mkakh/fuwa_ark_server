@@ -1,5 +1,5 @@
 use std::collections::{HashMap, HashSet};
-use std::io::{Read, Write};
+use std::io::{copy, Read, Write};
 use std::sync::Arc;
 
 use serenity::async_trait;
@@ -544,11 +544,74 @@ async fn listbackups(ctx: &Context, msg: &Message) -> CommandResult {
 #[description = "指定されたセーブデータを使ってロールバックします"]
 #[allowed_roles("ARK Server Admin")]
 async fn rollback(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
-    // TODO 未実装
-    if !args.is_empty() {
-        msg.reply(&ctx.http, "未実装です").await?;
+    // サーバーが起動中かをチェック
+    let output = rcon("listplayers").await;
+    if output.is_err() || output.unwrap().is_empty() {
+        // バックアップファイルが指定されているかをチェック
+        if !args.is_empty() {
+            // forceオプションの有無をチェック
+            if !args.rest().contains("force") {
+                msg.reply(&ctx.http, "ロールバックを開始します").await?;
+                let zip_fullpath = format!(
+                    "C:/asmdata/akhBackups/{}.zip",
+                    args.rest()
+                        .strip_prefix("force")
+                        .expect("failed to get the zip fullpath")
+                        .trim()
+                );
+                let outpath_prefix = "C:/asmdata/Servers/Server2/ShooterGame/Saved/SavedArks";
+                let fname = std::path::Path::new(&zip_fullpath);
+                let file = File::open(fname).unwrap();
+
+                let mut archive = zip::ZipArchive::new(file).unwrap();
+
+                for i in 0..archive.len() {
+                    let mut file = archive.by_index(i).expect("failed to open zip file");
+                    let outpath = match file.enclosed_name() {
+                        Some(path) => std::path::Path::new(outpath_prefix).join(path),
+                        None => continue,
+                    };
+
+                    {
+                        let comment = file.comment();
+                        if !comment.is_empty() {
+                            println!("File {} comment: {}", i, comment);
+                        }
+                    }
+
+                    if (*file.name()).ends_with('/') {
+                        println!("File {} extracted to \"{}\"", i, outpath.display());
+                        std::fs::create_dir_all(&outpath).unwrap();
+                    } else {
+                        println!(
+                            "File {} extracted to \"{}\" ({} bytes)",
+                            i,
+                            outpath.display(),
+                            file.size()
+                        );
+                        if let Some(p) = outpath.parent() {
+                            if !p.exists() {
+                                std::fs::create_dir_all(p).unwrap();
+                            }
+                        }
+                        let mut outfile = File::create(&outpath).unwrap();
+                        copy(&mut file, &mut outfile).unwrap();
+                    }
+                }
+                msg.reply(&ctx.http, "ロールバックを正常に終了しました")
+                    .await?;
+            } else {
+                msg.reply(&ctx.http, "ロールバックを行うと現在のデータは失われます．確認のため*/rollback force ファイル名*を実行してください").await?;
+            }
+        } else {
+            msg.reply(&ctx.http, "セーブデータ名を指定してください．利用可能なセーブデータは*/listbackups*で確認できます．").await?;
+        }
     } else {
-        msg.reply(&ctx.http, "セーブデータ名を指定してください．利用可能なセーブデータは*/listbackups*で確認できます．").await?;
+        msg.reply(
+            &ctx.http,
+            "ARKサーバーが動作中です．ロールバックを行う前にサーバーを停止してください．",
+        )
+        .await?;
     }
     Ok(())
 }
