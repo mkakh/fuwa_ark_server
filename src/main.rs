@@ -23,6 +23,9 @@ use tokio::time::{sleep, Duration};
 use walkdir::WalkDir;
 use zip::write::FileOptions;
 
+const BACKUP_DIR_PATH: &str = "C:/asmdata/akhBackups";
+const ARK_SAVEDATA_PATH: &str = "C:/asmdata/Servers/Server2/ShooterGame/Saved/SavedArks";
+
 // A container type is created for inserting into the Client's `data`, which
 // allows for data to be accessible across all events and framework commands, or
 // anywhere else that has a copy of the `data` Arc.
@@ -523,7 +526,7 @@ async fn check_server(ctx: &Context, msg: &Message) -> CommandResult {
 async fn listbackups(ctx: &Context, msg: &Message) -> CommandResult {
     let mut list: String =
         String::from("表記説明：\n`2022-12-21_(16-11-21).zip` 2022/12/21 16:11のバックアップ\n\n");
-    let paths = std::fs::read_dir("C:/asmdata/akhBackups")?;
+    let paths = std::fs::read_dir(BACKUP_DIR_PATH)?;
     for (i, path) in paths.into_iter().enumerate() {
         list.push_str(&format!(
             "{}: `{}`\n",
@@ -554,13 +557,13 @@ async fn rollback(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
             if !args.rest().contains("force") {
                 msg.reply(&ctx.http, "ロールバックを開始します").await?;
                 let zip_fullpath = format!(
-                    "C:/asmdata/akhBackups/{}.zip",
+                    "{}/{}.zip",
+                    BACKUP_DIR_PATH,
                     args.rest()
                         .strip_prefix("force")
                         .expect("failed to get the zip fullpath")
                         .trim()
                 );
-                let outpath_prefix = "C:/asmdata/Servers/Server2/ShooterGame/Saved/SavedArks";
                 let fname = std::path::Path::new(&zip_fullpath);
                 let file = File::open(fname).unwrap();
 
@@ -569,7 +572,7 @@ async fn rollback(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
                 for i in 0..archive.len() {
                     let mut file = archive.by_index(i).expect("failed to open zip file");
                     let outpath = match file.enclosed_name() {
-                        Some(path) => std::path::Path::new(outpath_prefix).join(path),
+                        Some(path) => std::path::Path::new(ARK_SAVEDATA_PATH).join(path),
                         None => continue,
                     };
 
@@ -622,20 +625,22 @@ async fn create_backup() -> zip::result::ZipResult<()> {
     let date = chrono::Local::now()
         .format("%Y-%m-%d_(%H-%M-%S)")
         .to_string();
-    let dest = format!("C:/asmdata/akhBackups/{}.zip", date);
+    let dest = format!("{}/{}.zip", BACKUP_DIR_PATH, date);
     let path = std::path::Path::new(&dest);
     let mut zip = zip::ZipWriter::new(std::fs::File::create(path)?);
     let options = FileOptions::default().compression_method(zip::CompressionMethod::Bzip2);
 
-    let target_path = "C:/asmdata/Servers/Server2/ShooterGame/Saved/SavedArks";
-
-    let walkdir = WalkDir::new(target_path);
+    let walkdir = WalkDir::new(ARK_SAVEDATA_PATH);
     let it = walkdir.into_iter().filter_map(|e| e.ok());
 
     let mut buffer = Vec::new();
     for entry in it {
         let path = entry.path();
-        let name = path.strip_prefix(target_path).unwrap().to_str().unwrap();
+        let name = path
+            .strip_prefix(ARK_SAVEDATA_PATH)
+            .unwrap()
+            .to_str()
+            .unwrap();
         if path.is_file()
             && (!(path
                 .extension()
@@ -662,20 +667,19 @@ async fn create_backup() -> zip::result::ZipResult<()> {
     zip.finish()?;
 
     // if the num of file is greater than 10, delete the oldest backup
-    let backup_dir_path = "C:/asmdata/akhBackups";
     if 10
-        < std::fs::read_dir(backup_dir_path)
+        < std::fs::read_dir(BACKUP_DIR_PATH)
             .expect("failed to read the backup directory")
             .count()
     {
         let paths =
-            std::fs::read_dir(backup_dir_path).expect("failed to read the backup directory");
-        let mut old_path = std::path::PathBuf::from("C:/asmdata/akhBackups");
+            std::fs::read_dir(BACKUP_DIR_PATH).expect("failed to read the backup directory");
+        let mut old_path = std::path::PathBuf::from(BACKUP_DIR_PATH);
         let mut old_time = std::time::SystemTime::now();
 
         for result_path in paths {
             let entry = result_path.expect("failed to read a file (backup)");
-            let metadata = std::fs::metadata("C:/asmdata/akhBackups")?;
+            let metadata = std::fs::metadata(BACKUP_DIR_PATH)?;
             let created_time = metadata.created()?;
 
             if created_time < old_time {
@@ -683,7 +687,7 @@ async fn create_backup() -> zip::result::ZipResult<()> {
                 old_path = entry.path();
             }
         }
-        if old_path != std::path::PathBuf::from(backup_dir_path) {
+        if old_path != std::path::PathBuf::from(BACKUP_DIR_PATH) {
             std::fs::remove_file(&old_path)?;
             println!(
                 "Deleted {}",
