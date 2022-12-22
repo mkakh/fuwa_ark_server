@@ -279,9 +279,9 @@ async fn check_connection(ctx: &Context, msg: &Message) -> CommandResult {
         .expect("failed to start `check_connection`");
     let output = String::from_utf8_lossy(&raw_output.stdout);
     let m = if output == "0" {
-        "playit.ggが起動されていません．\n*/reload_connection*を実行してplayit.ggを起動してください．"
+        "playit.ggが起動されていません．*/reload_connection*を実行してplayit.ggを起動してください．"
     } else {
-        "playit.ggは実行中です．\n回線に問題がある場合は*/reload_connection*を実行してください．"
+        "playit.ggは実行中です．回線に問題がある場合は*/reload_connection*を実行してください．"
     };
     msg.reply(&ctx.http, m).await?;
     Ok(())
@@ -309,14 +309,14 @@ async fn reload_connection(ctx: &Context, msg: &Message, args: Args) -> CommandR
         if result.is_err() {
             msg.reply(
                 &ctx.http,
-                "reload_connectionの実行に失敗しました\n再実行してください",
+                "reload_connectionの実行に失敗しました．再実行してください．",
             )
             .await?;
         } else {
             msg.reply(&ctx.http, "Connection Reloaded").await?;
         }
     } else {
-        msg.reply(&ctx.http, "ゲームにプレイヤーが残っていたため，再起動を中止しました．\n強制再起動をする場合は*/reload_connection force*を実行してください．").await?;
+        msg.reply(&ctx.http, "ゲームにプレイヤーが残っていたため，再起動を中止しました．強制再起動をする場合は*/reload_connection force*を実行してください．").await?;
     }
     Ok(())
 }
@@ -327,9 +327,9 @@ async fn save(ctx: &Context, msg: &Message) -> CommandResult {
     let output = rcon("SaveWorld").await.expect("failed to run `rcon`");
 
     if output.is_empty() {
-        msg.reply(&ctx.http, "No output was returned").await?;
+        msg.reply(&ctx.http, "No output was returned.").await?;
     } else {
-        msg.reply(&ctx.http, "セーブとバックアップを開始しました")
+        msg.reply(&ctx.http, "セーブとバックアップを開始しました．")
             .await?;
         create_backup().await?;
         msg.reply(&ctx.http, output).await?;
@@ -371,7 +371,7 @@ async fn broadcast(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
             .await
             .expect("failed to run `rcon`");
     } else {
-        msg.reply(&ctx.http, "An argument is required").await?;
+        msg.reply(&ctx.http, "An argument is required.").await?;
     }
     Ok(())
 }
@@ -389,12 +389,13 @@ async fn start_server(ctx: &Context, msg: &Message) -> CommandResult {
             .expect("failed to start `check_connection`");
         let output = String::from_utf8_lossy(&raw_output.stdout);
         if output.is_empty() {
-            msg.reply(&ctx.http, "No output was returned").await?;
+            msg.reply(&ctx.http, "No output was returned.").await?;
         } else {
             msg.reply(&ctx.http, output).await?;
         }
     } else {
-        msg.reply(&ctx.http, "ARKサーバーは既に動作中です").await?;
+        msg.reply(&ctx.http, "ARKサーバーは既に動作中です．")
+            .await?;
     }
     Ok(())
 }
@@ -404,7 +405,7 @@ async fn start_server(ctx: &Context, msg: &Message) -> CommandResult {
 #[allowed_roles("ARK Server Admin")]
 async fn restart_server(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     if num_listplayers().await == 0 || (!args.is_empty() && args.rest() == "force") {
-        msg.reply(&ctx.http, "ゲームをセーブします").await?;
+        msg.reply(&ctx.http, "ゲームをセーブします．").await?;
         let mut save_succeeded_flag = false;
         for i in 0..3 {
             let output = rcon("SaveWorld").await.expect("failed to run `rcon`");
@@ -418,7 +419,7 @@ async fn restart_server(ctx: &Context, msg: &Message, args: Args) -> CommandResu
                     msg.reply(&ctx.http, "セーブに失敗しました．").await?;
                 }
             } else {
-                msg.reply(&ctx.http, "セーブとバックアップを開始しました")
+                msg.reply(&ctx.http, "セーブとバックアップを開始しました．")
                     .await?;
                 create_backup().await?;
                 msg.reply(&ctx.http, output).await?;
@@ -427,7 +428,7 @@ async fn restart_server(ctx: &Context, msg: &Message, args: Args) -> CommandResu
             };
         }
         if save_succeeded_flag {
-            msg.reply(&ctx.http, "シャットダウンを開始します").await?;
+            msg.reply(&ctx.http, "シャットダウンを開始します．").await?;
             let output = rcon("DoExit").await.expect("failed to run `rcon`");
 
             if output.is_empty() {
@@ -441,7 +442,7 @@ async fn restart_server(ctx: &Context, msg: &Message, args: Args) -> CommandResu
                     .expect("failed to start `check_connection`");
                 let output = String::from_utf8_lossy(&raw_output.stdout);
                 if output.is_empty() {
-                    msg.reply(&ctx.http, "No output was returned").await?;
+                    msg.reply(&ctx.http, "No output was returned.").await?;
                 } else {
                     msg.reply(&ctx.http, output).await?;
                 }
@@ -464,7 +465,7 @@ async fn restart_server(ctx: &Context, msg: &Message, args: Args) -> CommandResu
 #[allowed_roles("ARK Server Admin")]
 async fn shutdown_server(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     if num_listplayers().await == 0 || (!args.is_empty() && args.rest() == "force") {
-        msg.reply(&ctx.http, "ゲームをセーブします").await?;
+        msg.reply(&ctx.http, "ゲームをセーブします．").await?;
         let mut save_succeeded_flag = false;
         for i in 0..3 {
             let output = rcon("SaveWorld").await.expect("failed to run `rcon`");
@@ -478,7 +479,7 @@ async fn shutdown_server(ctx: &Context, msg: &Message, args: Args) -> CommandRes
                     msg.reply(&ctx.http, "セーブに失敗しました．").await?;
                 }
             } else {
-                msg.reply(&ctx.http, "セーブとバックアップを開始しました")
+                msg.reply(&ctx.http, "セーブとバックアップを開始しました．")
                     .await?;
                 create_backup().await?;
                 msg.reply(&ctx.http, output).await?;
@@ -487,11 +488,11 @@ async fn shutdown_server(ctx: &Context, msg: &Message, args: Args) -> CommandRes
             };
         }
         if save_succeeded_flag {
-            msg.reply(&ctx.http, "シャットダウンを開始します").await?;
+            msg.reply(&ctx.http, "シャットダウンを開始します．").await?;
             let output = rcon("DoExit").await.expect("failed to run `rcon`");
 
             if output.is_empty() {
-                msg.reply(&ctx.http, "No output was returned").await?;
+                msg.reply(&ctx.http, "No output was returned.").await?;
             } else {
                 msg.reply(&ctx.http, output).await?;
             };
@@ -503,7 +504,7 @@ async fn shutdown_server(ctx: &Context, msg: &Message, args: Args) -> CommandRes
             .await?;
         }
     } else {
-        msg.reply(&ctx.http, "ゲームにプレイヤーが残っていたため，シャットダウンを中止しました．\n強制シャットダウンをする場合は*/shutdown force*を実行してください．").await?;
+        msg.reply(&ctx.http, "ゲームにプレイヤーが残っていたため，シャットダウンを中止しました．強制シャットダウンをする場合は*/shutdown force*を実行してください．").await?;
     }
     Ok(())
 }
@@ -513,9 +514,10 @@ async fn shutdown_server(ctx: &Context, msg: &Message, args: Args) -> CommandRes
 async fn check_server(ctx: &Context, msg: &Message) -> CommandResult {
     let output = rcon("listplayers").await;
     if output.is_err() || output.unwrap().is_empty() {
-        msg.reply(&ctx.http, "ARKサーバーは動作停止中です").await?;
+        msg.reply(&ctx.http, "ARKサーバーは動作停止中です．")
+            .await?;
     } else {
-        msg.reply(&ctx.http, "ARKサーバーは動作中です").await?;
+        msg.reply(&ctx.http, "ARKサーバーは動作中です．").await?;
     }
     Ok(())
 }
@@ -555,7 +557,7 @@ async fn rollback(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
         if !args.is_empty() {
             // forceオプションの有無をチェック
             if !args.rest().contains("force") {
-                msg.reply(&ctx.http, "ロールバックを開始します").await?;
+                msg.reply(&ctx.http, "ロールバックを開始します．").await?;
                 let zip_fullpath = format!(
                     "{}/{}.zip",
                     BACKUP_DIR_PATH,
@@ -602,10 +604,10 @@ async fn rollback(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
                         copy(&mut file, &mut outfile).unwrap();
                     }
                 }
-                msg.reply(&ctx.http, "ロールバックを正常に終了しました")
+                msg.reply(&ctx.http, "ロールバックを正常に終了しました．")
                     .await?;
             } else {
-                msg.reply(&ctx.http, "ロールバックを行うと現在のデータは失われます．確認のため*/rollback force ファイル名*を実行してください").await?;
+                msg.reply(&ctx.http, "ロールバックを行うと現在のデータは失われます．確認のため*/rollback force ファイル名*を実行してください．").await?;
             }
         } else {
             msg.reply(&ctx.http, "セーブデータ名を指定してください．利用可能なセーブデータは*/listbackups*で確認できます．").await?;
@@ -709,7 +711,7 @@ async fn create_backup() -> zip::result::ZipResult<()> {
 async fn listplayers(ctx: &Context, msg: &Message) -> CommandResult {
     let output = rcon("listplayers").await.expect("failed to run `rcon`");
     if output.is_empty() {
-        msg.reply(&ctx.http, "Failed to get the player list")
+        msg.reply(&ctx.http, "Failed to get the player list.")
             .await?;
     } else {
         let mut v = vec![];
