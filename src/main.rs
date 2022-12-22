@@ -52,6 +52,7 @@ impl EventHandler for Handler {
     listplayers,
     save,
     listbackups,
+    rollback,
     check_connection,
     reload_connection,
     check_server,
